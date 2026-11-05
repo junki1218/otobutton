@@ -1,0 +1,532 @@
+/* おとボタン ─ タブレット横向き（1024×768 前後）を主対象にした作り。
+   文字は大きく、押すところは広く。動きは状態を伝えるためだけに使う。 */
+
+:root {
+  --bg: #f4f1ea;
+  --ink: #2f2a26;
+  --line: #d8d2c6;
+  --panel: #ffffff;
+  --accent: #3f78bd;
+  --stop: #d94f5c;
+  --radius: 22px;
+  --font: 'Zen Maru Gothic', 'UD デジタル 教科書体 NP-R', 'BIZ UDPGothic',
+          'Hiragino Maru Gothic ProN', 'Yu Gothic UI', sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+/* 画面の部品はぜんぶ粘土の面にする。
+   色は background-color が持ち、質感は同じ画像を乗算で重ねるだけ。
+   色を足したいときは background-color を変えれば、質感はそのまま付いてくる。 */
+.big-btn,
+.tool,
+.mini-btn,
+.chip,
+.set-done,
+.set-block,
+.card,
+.set-head,
+.pin-pad button,
+.icon-pick {
+  background-image: url(../assets/ui/clay_grain.png);
+  background-size: 140px 140px;
+  background-repeat: repeat;
+}
+
+/* 画像がまだ無いときは隠す。作者側の display 指定に負けないようにする */
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  /* 粘土の面を敷く。色は --bg、質感は画像。並べて敷くので拡大ぼけしない */
+  background-color: var(--bg);
+  background-image: url(../assets/ui/clay_grain.png);
+  background-size: 180px 180px;
+  color: var(--ink);
+  font-family: var(--font);
+  font-weight: 700;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+button, input, select { font-family: inherit; font-weight: inherit; }
+
+.screen { display: none; height: 100%; }
+.screen.is-active {
+  display: flex;
+  flex-direction: column;
+  animation: screen-in 0.18s ease-out;
+}
+@keyframes screen-in {
+  from { opacity: 0; transform: scale(0.99); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ================= スタート画面 ================= */
+.start-inner {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  padding: 24px;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0 0 8px;
+  font-size: clamp(40px, 8vw, 76px);
+  letter-spacing: 0.06em;
+}
+.title-logo { width: clamp(90px, 16vw, 160px); height: auto; }
+
+.big-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-width: min(520px, 82vw);
+  padding: 26px 40px;
+  border: none;
+  border-radius: var(--radius);
+  background-color: var(--accent);
+  color: #fff;
+  font-size: clamp(28px, 4.4vw, 44px);
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+}
+.big-btn {
+  touch-action: manipulation;
+  transition: transform 0.09s cubic-bezier(0.2, 0.9, 0.3, 1.25), box-shadow 0.09s ease;
+}
+.big-btn:active { transform: translateY(4px) scale(0.98); box-shadow: 0 2px 0 rgba(0, 0, 0, 0.18); }
+.big-btn--sub { background-color: #8a8579; font-size: clamp(22px, 3vw, 32px); padding: 18px 32px; }
+.big-btn__icon { width: 1.5em; height: 1.5em; object-fit: contain; }
+
+/* ================= メイン画面 ================= */
+.grid {
+  flex: 1;
+  min-height: 0;
+  /* ボタンを並べる粘土の板 */
+  background: url(../assets/ui/board.png) center / 100% 100% no-repeat;
+  margin: clamp(6px, 1vw, 12px);
+  border-radius: 28px;
+  display: grid;
+  grid-template-columns: repeat(var(--columns, 3), 1fr);
+  grid-auto-rows: 1fr;          /* 何個あっても画面の高さに収める */
+  gap: clamp(10px, 1.6vw, 20px);
+  padding: clamp(10px, 1.6vw, 20px);
+  align-items: center;
+  justify-items: center;
+  overflow: hidden;
+}
+
+.pad {
+  position: relative;
+  width: calc(100% * var(--pad-scale, 1));
+  height: calc(100% * var(--pad-scale, 1));
+  max-width: calc(320px * var(--pad-scale, 1));
+  max-height: calc(320px * var(--pad-scale, 1));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  /* 横の余白は広め、縦はつめる。ボタンは横長なので、縦をつめた分だけ絵が大きくなる */
+  padding: 7% 9%;
+  border: none;
+  border-radius: 19%;
+  /* 粘土の面。色は background-color、質感は画像、乗算で色に焼き込む。
+     マスクや mix-blend-mode は端末によって出ないことがあるので使わない。 */
+  background-color: var(--pad-color, #3f78bd);
+  background-image:
+    radial-gradient(120% 80% at 50% 6%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 55%),
+    url(../assets/ui/clay_grain.png);
+  background-size: auto, 150px 150px;
+  background-repeat: no-repeat, repeat;
+  color: #fff;
+  cursor: pointer;
+  overflow: hidden;                 /* 波紋をボタンの中に収める */
+  touch-action: manipulation;       /* タップしてから効くまでの待ちを無くす */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  box-shadow: 0 9px 14px rgba(70, 55, 40, 0.28);
+  transition: transform 0.09s cubic-bezier(0.2, 0.9, 0.3, 1.25),
+              box-shadow 0.09s ease, filter 0.15s ease;
+}
+
+/* 粘土の厚みと、へりの丸み。内側の影で、手でならした面に見せる */
+.pad::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 6px 10px rgba(255, 255, 255, 0.28),
+    inset 0 -10px 16px rgba(60, 40, 25, 0.22),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.12);
+  pointer-events: none;
+}
+
+/* 中身（絵・名前・リング・波紋）は粘土の面より手前に */
+.pad > * { position: relative; z-index: 2; }
+
+/* 指が触れた瞬間に沈む。離すと「ぽんっ」と少し行き過ぎてから戻る */
+.pad.is-pressed {
+  transform: translateY(7px) scale(0.96);
+  box-shadow: 0 2px 5px rgba(70, 55, 40, 0.3);
+}
+
+.pad.is-popping { animation: pad-pop 0.22s ease-out; }
+@keyframes pad-pop {
+  0%   { transform: translateY(2px) scale(0.98); }
+  45%  { transform: translateY(0) scale(1.045); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+/* 押したところから広がる波紋。1回だけ、0.45秒で消える */
+.ripple {
+  position: absolute;
+  width: 160%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0));
+  transform: translate(-50%, -50%) scale(0);
+  pointer-events: none;
+  animation: ripple-out 0.45s ease-out forwards;
+}
+@keyframes ripple-out {
+  0%   { transform: translate(-50%, -50%) scale(0); opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+}
+
+/* 名前を置いた残りの高さを、絵がぜんぶ使う。
+   割合（52% 等）で決めると、横長のボタンでは絵が小さいまま余白が残る。 */
+.pad__icon {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 3px 4px rgba(60, 40, 25, 0.3));
+}
+.pad__name {
+  font-size: clamp(18px, 2.6vw, 34px);
+  line-height: 1.15;
+  text-align: center;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  word-break: keep-all;
+}
+
+/* 残り時間のリング。鳴っている間だけ見せる */
+.pad__ring {
+  position: absolute;
+  inset: 3%;
+  width: 94%;
+  height: 94%;
+  opacity: 0;
+  transform: rotate(-90deg);
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.pad__ring-track { fill: none; stroke: rgba(255, 255, 255, 0.25); stroke-width: 6; }
+.pad__ring-bar {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 6;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.3s linear;
+}
+
+.pad.is-playing,
+.pad.is-paused { filter: brightness(1.18) saturate(1.1); }
+.pad.is-playing { outline: 5px solid #fff; outline-offset: -5px; }
+.pad.is-playing .pad__ring,
+.pad.is-paused .pad__ring { opacity: 1; }
+.pad.is-paused .pad__ring-bar { stroke: rgba(255, 255, 255, 0.55); }
+.pad.is-paused { outline: 5px dashed rgba(255, 255, 255, 0.8); outline-offset: -5px; }
+.pad.is-error { filter: grayscale(0.7); }
+
+/* 動きを減らすモード：沈み込みとリングの動きを止め、明るさの変化だけにする */
+.reduce-motion .pad,
+.reduce-motion .big-btn { transition: filter 0.15s ease; }
+.reduce-motion .pad:active,
+.reduce-motion .big-btn:active { transform: none; }
+.reduce-motion .pad__ring-bar { transition: none; }
+.reduce-motion .pad__ring { display: none; }
+.reduce-motion .pad.is-pressed { transform: none; filter: brightness(1.3); }
+.reduce-motion .pad.is-popping { animation: none; }
+.reduce-motion .ripple { display: none; }
+.reduce-motion .screen.is-active { animation: none; }
+
+/* 下の操作列 */
+.toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 clamp(6px, 1vw, 12px) clamp(6px, 1vw, 12px);
+  padding: 10px clamp(10px, 1.6vw, 20px) max(10px, env(safe-area-inset-bottom));
+  /* 下の操作列も粘土の帯 */
+  background: url(../assets/ui/strip.png) center / 100% 100% no-repeat;
+  border-radius: 22px;
+}
+
+.tool {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  background-color: #fbfaf7;
+  color: var(--ink);
+  font-size: clamp(16px, 2vw, 24px);
+  cursor: pointer;
+}
+.tool__icon { width: 1.4em; height: 1.4em; object-fit: contain; }
+.tool { touch-action: manipulation; transition: transform 0.08s ease, filter 0.12s ease; }
+.tool:active { transform: scale(0.96); filter: brightness(0.96); }
+.tool--volume:active { transform: none; filter: none; }
+.tool--stop { background-color: var(--stop); border-color: var(--stop); color: #fff; }
+.tool--volume { flex: 1; min-width: 180px; cursor: default; }
+.tool__label { font-size: clamp(13px, 1.4vw, 17px); white-space: nowrap; }
+.tool--volume input[type="range"] { flex: 1; min-width: 100px; height: 36px; }
+.tool--volume.is-locked { background-color: #f0ece3; color: #8a8579; }
+.tool--volume.is-locked input[type="range"] { opacity: 0.45; }
+.lock-btn {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+/* ================= 設定画面 ================= */
+.set-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  background-color: var(--panel);
+  border-bottom: 2px solid var(--line);
+}
+.set-head h2 { margin: 0; font-size: 28px; }
+.set-done {
+  padding: 14px 30px;
+  border: none;
+  border-radius: 14px;
+  background-color: var(--accent);
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.set-body { flex: 1; overflow: auto; padding: 18px; }
+
+.set-block {
+  max-width: 980px;
+  margin: 0 auto 22px;
+  padding: 16px 18px;
+  background-color: var(--panel);
+  border: 2px solid var(--line);
+  border-radius: 18px;
+}
+.set-block h3 { margin: 0 0 12px; font-size: 22px; }
+
+.set-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid #eee7da;
+  font-size: 18px;
+}
+.set-row:first-of-type { border-top: none; }
+.set-row select,
+.set-row input[type="text"] {
+  padding: 8px 12px;
+  font-size: 18px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+}
+.set-row input[type="checkbox"] { width: 28px; height: 28px; }
+.hint { font-size: 15px; font-weight: 500; color: #6b6356; text-align: right; }
+
+/* 中身が横に長くなる行は、ラベルの下に積む */
+.set-row--block {
+  display: block;
+}
+.set-row--block > label { display: block; margin-bottom: 8px; }
+.set-row--block > .hint { display: block; text-align: left; margin-top: 8px; }
+
+/* この機械に入れた音の一覧 */
+.sound-list { display: flex; flex-direction: column; gap: 8px; }
+.sound-list__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background-color: #fbf7ef;
+  background-image: url(../assets/ui/clay_grain.png);
+  background-size: 140px 140px;
+  background-repeat: repeat;
+}
+.sound-list__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ボタン1つぶんのカード */
+.card {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 2px solid var(--line);
+  border-left: 10px solid var(--pad-color, #3f78bd);
+  border-radius: 14px;
+  background-color: #fdfcf9;
+}
+.card__head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.card__no {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--pad-color, #3f78bd);
+  color: #fff;
+  font-size: 17px;
+}
+.card__name {
+  flex: 1;
+  min-width: 100px;
+  padding: 8px 12px;
+  font-size: 22px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+}
+.card__tools { display: flex; gap: 6px; }
+
+.card__row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 0;
+}
+.card__label {
+  flex: 0 0 auto;
+  width: 112px;
+  font-size: 15px;
+  color: #6b6356;
+}
+.card__row select { padding: 8px 10px; font-size: 17px; border: 2px solid var(--line); border-radius: 10px; }
+.card__row input[type="range"] { flex: 1; min-width: 140px; height: 34px; }
+
+.mini-btn {
+  padding: 8px 14px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background-color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+}
+.mini-btn:disabled { opacity: 0.35; cursor: default; }
+.mini-btn--add { margin-top: 6px; font-size: 18px; padding: 12px 20px; }
+
+.chip {
+  padding: 8px 14px;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background-color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+}
+.chip.is-on { background-color: var(--accent); border-color: var(--accent); color: #fff; }
+
+.swatch {
+  width: 38px;
+  height: 38px;
+  border: 3px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.swatch.is-on { border-color: var(--ink); box-shadow: 0 0 0 2px #fff inset; }
+
+.icon-pick {
+  width: 72px;
+  min-height: 72px;
+  padding: 6px 4px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background-color: #fff;
+  cursor: pointer;
+}
+.icon-pick.is-on { border-color: var(--accent); background-color: #eaf2fb; }
+.icon-pick__img { display: block; width: 44px; height: 44px; margin: 0 auto 2px; object-fit: contain; }
+.icon-pick__cap { display: block; font-size: 11px; font-weight: 500; line-height: 1.1; }
+
+/* ================= 暗証番号 ================= */
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(30, 26, 22, 0.6);
+  z-index: 50;
+}
+.overlay[hidden] { display: none; }
+
+.pin-box {
+  width: min(380px, 90vw);
+  padding: 34px 30px 30px;
+  /* 粘土の板をそのまま敷く（大きさが決まっている箱なので、形が崩れない） */
+  background: url(../assets/ui/panel.png) center / 100% 100% no-repeat;
+  text-align: center;
+}
+.pin-msg { margin: 0 0 14px; font-size: 18px; }
+.pin-dots { display: flex; justify-content: center; gap: 14px; margin-bottom: 16px; }
+.pin-dot {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+}
+.pin-dot.is-on { background: var(--accent); border-color: var(--accent); }
+
+.pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.pin-pad button {
+  padding: 16px 0;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background-color: #fbfaf7;
+  font-size: 22px;
+  cursor: pointer;
+}
+.pin-error { margin: 12px 0 0; color: var(--stop); font-size: 17px; }
+
+/* ================= 狭い画面・縦向き ================= */
+@media (max-width: 700px) {
+  .toolbar { flex-wrap: wrap; }
+  .tool { padding: 12px 14px; }
+  .card__label { width: 100%; }
+}
