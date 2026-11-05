@@ -30,6 +30,7 @@ const Player = (() => {
       const t = tracks.get(b.id);
       if (t && t.url === url) {
         t.buttonVolume = b.volume / 100;
+        t.tapAgain = b.tapAgain;
         applyVolume(b.id);
         return;
       }
@@ -38,7 +39,12 @@ const Player = (() => {
       const el = new Audio();
       el.preload = 'auto';
       el.src = url;
-      const track = { el, url, lastTap: 0, buttonVolume: b.volume / 100, state: 'idle' };
+      const track = {
+        el, url, lastTap: 0,
+        buttonVolume: b.volume / 100,
+        tapAgain: b.tapAgain,        /* 'restart' = はじめから / 'pause' = いちじていし */
+        state: 'idle',
+      };
       tracks.set(b.id, track);
       applyVolume(b.id);
       el.addEventListener('ended', () => {
@@ -78,10 +84,19 @@ const Player = (() => {
     if (now - t.lastTap < TAP_GUARD_MS) return false;
     t.lastTap = now;
 
+    /* 鳴っている最中にもう一度おしたとき。ボタンごとに決めてある。 */
     if (t.state === 'playing') {
-      t.el.pause();
-      t.state = 'paused';
-      onChange(id, 'paused', remainRatio(t.el));
+      if (t.tapAgain === 'pause') {
+        t.el.pause();
+        t.state = 'paused';
+        onChange(id, 'paused', remainRatio(t.el));
+        return true;
+      }
+      /* はじめから鳴らし直す（既定）。止まらないので、止めるのは「ぜんぶとめる」 */
+      try { t.el.currentTime = 0; } catch (e) { /* 読み込み前は無視 */ }
+      const again = t.el.play();
+      onChange(id, 'playing', 1);
+      if (again && again.catch) again.catch(() => { t.state = 'idle'; onChange(id, 'idle', 0); });
       return true;
     }
     /* idle は頭から、paused は止めた位置から */

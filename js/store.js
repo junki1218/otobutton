@@ -49,6 +49,14 @@ const Store = (() => {
     { id: 'gray',   label: 'はいいろ', value: '#6d7a88' },
   ];
 
+  /* 鳴っている最中に、もう一度おしたらどうするか。
+     既定は「はじめから」。効果音を続けて鳴らす使い方に合う。
+     長い曲を入れるボタンは「いちじていし」にすると、押すたびに止め／再開できる。 */
+  const TAP_AGAIN = [
+    { id: 'restart', label: 'はじめから' },
+    { id: 'pause',   label: 'いちじていし' },
+  ];
+
   /* マス目の中でどれだけ広がるか。おおきい＝マス目いっぱい。
      1 を超えると隣とぶつかるので、ここは 1.0 が上限。 */
   const SIZES = [
@@ -66,6 +74,7 @@ const Store = (() => {
       size: 'normal',
       icon: sfx.icon,
       sound: { type: 'sfx', file: sfx.file },
+      tapAgain: 'restart',
       volume: 100,
     };
   }
@@ -108,6 +117,7 @@ const Store = (() => {
           type: ['sfx', 'local', 'file', 'none'].includes(sound.type) ? sound.type : 'sfx',
           file: typeof sound.file === 'string' ? sound.file : base.sound.file,
         },
+        tapAgain: TAP_AGAIN.some(t => t.id === b?.tapAgain) ? b.tapAgain : base.tapAgain,
         volume: clamp(parseInt(b?.volume, 10), 0, 100, 100),
       };
     });
@@ -209,7 +219,7 @@ const Store = (() => {
   }
 
   return {
-    MAX_BUTTONS, SFX, ICONS, COLORS, SIZES,
+    MAX_BUTTONS, SFX, ICONS, COLORS, SIZES, TAP_AGAIN,
     get state() { return state; },
     get localSounds() { return localSounds; },
     load, save, loadLocalSounds, defaults,

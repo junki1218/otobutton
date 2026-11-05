@@ -243,6 +243,18 @@ const Screens = (() => {
     soundRow.appendChild(miniBtn('ファイルから', () => pickSoundFile(b)));
     card.appendChild(soundRow);
 
+    /* 鳴っている最中に、もう一度おしたらどうするか */
+    const againRow = row('おしなおすと');
+    Store.TAP_AGAIN.forEach(t => {
+      againRow.appendChild(chip(t.label, b.tapAgain === t.id, () => {
+        b.tapAgain = t.id;
+        Store.save();
+        Player.sync(Store.state.buttons);
+        renderSettings();
+      }));
+    });
+    card.appendChild(againRow);
+
     /* 色 */
     const colorRow = row('いろ');
     Store.COLORS.forEach(c => {
